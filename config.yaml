@@ -1,0 +1,51 @@
+# Home Assistant add-on manifest for OpenEMS Edge
+# Reference: https://developers.home-assistant.io/docs/add-ons/configuration
+
+name: OpenEMS Edge
+version: "0.1.0"
+slug: openems_edge
+description: Run OpenEMS Edge alongside Home Assistant for local energy management
+url: https://openems.github.io/openems.io/
+
+# openems/edge publishes amd64 + arm64; adjust if you also need armv7
+arch:
+  - amd64
+  - aarch64
+
+# We do NOT use the HA base image (s6-overlay), since we're wrapping a
+# self-contained Java/OSGi image with its own entrypoint.
+init: false
+
+# Run on the host network so the Apache Felix console (8080) and the
+# UI WebSocket (8085) are reachable on the HA host's LAN IP. Without
+# host_network, you'd need to declare each port explicitly under `ports`.
+host_network: true
+
+# Explicit port declarations are still required by Supervisor even with
+# host_network. Map ports 1:1 to the host.
+ports:
+  8080/tcp: 8080
+  8085/tcp: 8085
+ports_description:
+  8080/tcp: Apache Felix Web Console (admin/admin by default)
+  8085/tcp: OpenEMS UI WebSocket — point ha_openems integration here
+
+# No user-facing options yet. Configuration happens inside OpenEMS via
+# the Felix console. Add schema entries here later if you want to expose
+# Java heap size, log level, etc.
+options: {}
+schema: {}
+
+# We want a clickable button in the Supervisor UI that opens the Felix
+# web console. webui works without ingress; for ingress you'd need a
+# reverse-proxy shim that's out of scope for v0.1.
+webui: "http://[HOST]:8080/system/console"
+
+# Make /share writable so users can drop in custom OpenEMS bundles
+# (Apache Felix .jar files) without rebuilding the image.
+map:
+  - share:rw
+
+# Boot behaviour
+startup: services
+boot: auto
