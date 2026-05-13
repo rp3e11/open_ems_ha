@@ -1,0 +1,56 @@
+# Home Assistant add-on manifest for OpenEMS Edge
+# Reference: https://developers.home-assistant.io/docs/add-ons/configuration
+
+name: OpenEMS Edge
+version: "0.1.0"
+slug: openems_edge
+description: Run OpenEMS Edge alongside Home Assistant for local energy management
+url: https://openems.github.io/openems.io/
+
+# openems/edge publishes amd64 + arm64; adjust if you also need armv7
+arch:
+  - amd64
+  - aarch64
+
+# We do NOT use the HA base image (s6-overlay), since we're wrapping a
+# self-contained Java/OSGi image with its own entrypoint.
+init: false
+
+# Run on the host network so the OpenEMS WebSocket (8085) is reachable on
+# the HA host's LAN IP and Modbus-TCP/SunSpec devices are discoverable.
+host_network: true
+
+# Port mappings. Port 8080 is also available directly as a fallback
+# since the Felix console doesn't fully support ingress reverse proxying.
+ports:
+  8080/tcp: 8080
+  8085/tcp: 8085
+ports_description:
+  8080/tcp: Apache Felix Web Console
+  8085/tcp: OpenEMS Edge WebSocket
+
+# Ingress: the Supervisor reverse-proxies the Felix Web Console through
+# HA authentication. No direct exposure of port 8080 needed.
+ingress: true
+ingress_port: 8080
+ingress_entry: /system/console
+panel_icon: "mdi:lightning-bolt"
+panel_title: "OpenEMS"
+
+# No user-facing options yet. Configuration happens inside OpenEMS via
+# the Felix console (accessible through ingress). Add schema entries here
+# later if you want to expose Java heap size, log level, etc.
+options: {}
+schema: {}
+
+# Custom bundles: users can drop Felix .jar files into /data/bundles
+# (persistent across add-on updates, private to this add-on).
+
+stage: stable
+
+# Boot behaviour
+startup: services
+boot: auto
+
+# Watchdog: Supervisor will restart the add-on if this health check fails
+watchdog: "tcp://[HOST]:8085"

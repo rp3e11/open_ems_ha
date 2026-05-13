@@ -1,0 +1,4 @@
+configuration: {}
+network:
+  8080/tcp: Apache Felix Web Console
+  8085/tcp: OpenEMS Edge WebSocket

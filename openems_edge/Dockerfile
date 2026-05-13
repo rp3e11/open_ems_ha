@@ -11,14 +11,18 @@
 #     a thin wrapper that prepares /data and then exec's the original
 #     launch command discovered at runtime.
 
-ARG BUILD_FROM=openems/edge:latest
+ARG BUILD_FROM=openems/edge:2026.5.0
 FROM ${BUILD_FROM}
 
 USER root
 
+# Non-root user creation happens in run.sh at runtime so we can
+# inspect the base image's existing users and handle errors visibly.
+
 # Replace the writable dirs with symlinks into /data. We do this at build
 # time so OpenEMS sees the correct paths on first boot.
-RUN rm -rf /var/opt/openems/config /var/opt/openems/data \
+RUN mkdir -p /var/opt/openems \
+ && rm -rf /var/opt/openems/config /var/opt/openems/data \
  && ln -sfn /data/config /var/opt/openems/config \
  && ln -sfn /data/data   /var/opt/openems/data
 
@@ -27,11 +31,16 @@ RUN rm -rf /var/opt/openems/config /var/opt/openems/data \
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
-# Labels for the Supervisor UI
+# Labels for the Supervisor UI — BUILD_VERSION is provided by the
+# Supervisor from config.yaml's version field, keeping it in one place.
+ARG BUILD_VERSION
 LABEL \
     io.hass.name="OpenEMS Edge" \
     io.hass.description="OpenEMS Edge inside Home Assistant" \
     io.hass.type="addon" \
-    io.hass.version="0.1.0"
+    io.hass.version="${BUILD_VERSION}"
 
+# Ensure entrypoint runs as root so run.sh can create dirs and chown
+# before dropping privileges to the openems user.
+USER root
 ENTRYPOINT ["/run.sh"]
