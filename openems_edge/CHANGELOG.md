@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Fix `mkdir: Permission denied` on `/data` by declaring the AppArmor capabilities needed by the entrypoint (chown, dac_override, setuid/setgid, etc.). The previous profile inherited no capabilities, so even root was blocked from creating dirs on the bind-mounted volume.
+
 ## 0.1.0
 
 - Initial release

@@ -3,6 +3,22 @@
 profile openems_edge flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
+  # Capabilities required by the entrypoint (mkdir on bind-mounted /data,
+  # chown, useradd/groupadd modifying /etc/passwd, su dropping to openems).
+  # AppArmor inherits no capabilities by default; without these, even root
+  # gets EPERM on operations that touch protected metadata.
+  capability chown,
+  capability dac_override,
+  capability dac_read_search,
+  capability fowner,
+  capability fsetid,
+  capability setgid,
+  capability setuid,
+  capability sys_chroot,
+  capability kill,
+  capability net_bind_service,
+  capability audit_write,
+
   # Allow network access (required for Modbus-TCP, WebSocket, Felix console)
   network inet stream,
   network inet dgram,
