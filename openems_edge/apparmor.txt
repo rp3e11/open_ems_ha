@@ -3,95 +3,31 @@
 profile openems_edge flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
-  # Capabilities required by the entrypoint (mkdir on bind-mounted /data,
-  # chown, useradd/groupadd modifying /etc/passwd, su dropping to openems).
-  # AppArmor inherits no capabilities by default; without these, even root
-  # gets EPERM on operations that touch protected metadata.
-  capability chown,
-  capability dac_override,
-  capability dac_read_search,
-  capability fowner,
-  capability fsetid,
-  capability setgid,
-  capability setuid,
-  capability sys_chroot,
-  capability kill,
-  capability net_bind_service,
-  capability audit_write,
+  # Allow all capabilities. The entrypoint needs many (chown, setuid,
+  # sys_chroot, etc.) and the container is otherwise isolated by HA
+  # Supervisor's container boundary. Following the same pattern as
+  # most official HA add-ons (e.g. mosquitto).
+  capability,
 
-  # Allow network access (required for Modbus-TCP, WebSocket, Felix console)
-  network inet stream,
-  network inet dgram,
-  network inet6 stream,
-  network inet6 dgram,
+  # Networking required for Modbus-TCP, WebSocket, and Felix console.
+  network,
 
-  # Shared libraries needed by the shell, user-management tools, and JVM
-  /lib/** rm,
-  /usr/lib/** rm,
+  # JVM uses signals between threads.
+  signal,
 
-  # Shell and coreutils used directly by run.sh.
-  # Both /bin and /usr/bin paths listed because on Debian /bin -> /usr/bin
-  # is a symlink that AppArmor may resolve differently per kernel.
-  /bin/sh rix,
-  /usr/bin/sh rix,
-  /bin/chmod rix,
-  /usr/bin/chmod rix,
-  /bin/chown rix,
-  /usr/bin/chown rix,
-  /bin/cp rix,
-  /usr/bin/cp rix,
-  /bin/ls rix,
-  /usr/bin/ls rix,
-  /bin/mkdir rix,
-  /usr/bin/mkdir rix,
-  /bin/rm rix,
-  /usr/bin/rm rix,
-  /bin/sed rix,
-  /usr/bin/sed rix,
-  /bin/su rix,
-  /usr/bin/su rix,
-  /bin/touch rix,
-  /usr/bin/touch rix,
-  /usr/bin/basename rix,
-  /usr/bin/id rix,
-  /usr/bin/mktemp rix,
-  /usr/bin/printf rix,
+  # Allow ptrace within the container (JVM diagnostics, jstack, etc.).
+  ptrace,
 
-  # User and group management tools vary by base image
-  /usr/sbin/addgroup rix,
-  /usr/sbin/adduser rix,
-  /usr/sbin/groupadd rix,
-  /usr/sbin/useradd rix,
-  /sbin/addgroup rix,
-  /sbin/adduser rix,
-  /sbin/groupadd rix,
-  /sbin/useradd rix,
+  # Filesystem: allow reading anywhere (needed for /etc/nsswitch.conf,
+  # /etc/passwd, locale data, /lib, /usr/lib, JVM internals) and
+  # writing where the entrypoint and OpenEMS need to.
+  / r,
+  /** r,
+  /** mrwlk,
+  /** ix,
 
-  # Java runtime and OpenEMS launchers
-  /usr/bin/java rix,
-  /usr/lib/jvm/**/bin/java rix,
-  /opt/openems/** r,
-  /opt/openems/openems-edge rix,
-  /opt/openems/bin/openems-edge rix,
-  /opt/openems/start.sh rix,
-  /opt/openems/docker-entrypoint.sh rix,
-  /opt/openems/bundles/ rw,
-  /opt/openems/bundles/** rw,
-
-  # Persistent data volume (include the directory itself)
-  /data/ rw,
-  /data/** rw,
-
-  # Symlink targets
-  /var/opt/openems/** rw,
-
-  # Temp and proc access needed by JVM
-  /tmp/** rw,
-  /proc/sys/net/** r,
-  @{PROC}/@{pid}/** r,
-
-  # Run script and shell
-  /run.sh rmix,
-
-  # Deny everything else by default (implicit in AppArmor)
+  # Explicit denies for things nothing in this add-on should touch.
+  deny /etc/shadow* w,
+  deny /etc/sudoers* w,
+  deny /boot/** w,
 }
