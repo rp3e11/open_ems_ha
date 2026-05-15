@@ -5,7 +5,11 @@
 #   1. Ensure persistent dirs exist under /data (HA add-on volume).
 #   2. Drop any user-supplied bundles from /data/bundles into the
 #      Felix bundle directory before launch.
-#   3. Hand off (via exec) to OpenEMS's own launcher, dropping to a
+#   3. Start nginx serving the OpenEMS UI (port 8766) in the background.
+#      The nginx master stays as root (started before privilege drop),
+#      its workers run as the nginx user. If the Java process exits the
+#      container exits and Docker reaps nginx.
+#   4. Hand off (via exec) to OpenEMS's own launcher, dropping to a
 #      non-root user if possible.
 set -eu
 
@@ -76,6 +80,22 @@ if [ -n "$RUN_USER" ]; then
 fi
 
 export HOME=/opt/openems
+
+# Start nginx in the background. The Alpine package defaults daemonise
+# the master process; workers drop to the nginx user via /etc/nginx/nginx.conf.
+# nginx serves the Angular SPA on 8766 and reverse-proxies /openems-edge
+# and /rest to the Java backend on 8764 / 8084.
+if command -v nginx >/dev/null 2>&1; then
+    echo "[openems-addon] starting nginx (UI on port 8766)"
+    # /run/nginx is needed for the pid file on Alpine; the package
+    # usually creates it, but make sure.
+    mkdir -p /run/nginx /var/log/nginx /var/lib/nginx/tmp
+    if ! nginx; then
+        echo "[openems-addon] WARNING: nginx failed to start; UI will be unavailable"
+    fi
+else
+    echo "[openems-addon] nginx not installed; UI front disabled"
+fi
 
 # Felix HTTP port. The add-on exposes 8765 on the host network (avoiding
 # the common 8080 conflict with other HA add-ons). We inject it via

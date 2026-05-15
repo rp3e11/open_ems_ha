@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- **Bundle the OpenEMS UI inside this add-on.** Multi-stage Docker build now pulls the Angular SPA from `openems/ui-edge:2026.5.0` and serves it via an nginx front on port 8766. nginx reverse-proxies `/openems-edge` to the WebSocket controller (8764) and `/rest` to the REST controller (8084). No separate UI add-on needed.
+- Ingress now points at the UI (port 8766) instead of the raw Felix Web Console, so the sidebar opens the friendly UI. The Felix console is still reachable directly at `:8765/system/console`.
+- Watchdog probes nginx on 8766 (always up after entrypoint completes) rather than Felix on 8765.
+
 ## 0.1.5
 
 - Move default ports off the commonly-contested 8080/8085 onto 8765 (Felix Web Console / OpenEMS UI) and 8764 (OpenEMS WebSocket).

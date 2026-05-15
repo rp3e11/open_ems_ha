@@ -106,6 +106,15 @@ assert "java process running" $RT exec "$CONTAINER" sh -c "ps aux 2>/dev/null | 
 
 # -------------------------------------------------------
 echo ""
+echo "=== Test: nginx UI front is running ==="
+
+assert "nginx master running" $RT exec "$CONTAINER" sh -c "pgrep -x nginx >/dev/null"
+assert "UI static files present" $RT exec "$CONTAINER" test -f /var/www/html/openems/index.html
+assert "nginx server block installed" $RT exec "$CONTAINER" test -f /etc/nginx/http.d/openems-ui.conf
+assert "UI port 8766 listening" $RT exec "$CONTAINER" sh -c "ss -tln 2>/dev/null | grep -q ':8766' || netstat -tln 2>/dev/null | grep -q ':8766'"
+
+# -------------------------------------------------------
+echo ""
 echo "=== Test: container is healthy ==="
 
 STATE=$($RT inspect --format '{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "unknown")
