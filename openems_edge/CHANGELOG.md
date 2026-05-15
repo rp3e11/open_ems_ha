@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Drop the AppArmor `deny /etc/shadow*` rule. `useradd` writes to `/etc/shadow` when creating the `openems` user on first boot; with the deny rule in place the call failed and the add-on fell back to running as root.
+- Remove the temporary mkdir diagnostics now that the cause (overly tight AppArmor profile) is fixed.
+
 ## 0.1.2
 
 - Broaden AppArmor profile to the standard HA add-on pattern (`capability,`, `network,`, `signal,`, broad file rules) since the specific-capability profile still produced `mkdir: Permission denied`.

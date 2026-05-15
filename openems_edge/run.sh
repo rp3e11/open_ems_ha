@@ -10,17 +10,7 @@
 set -eu
 
 echo "[openems-addon] preparing persistent storage under /data"
-echo "[openems-addon] running as: $(id 2>&1 || echo '<id failed>')"
-echo "[openems-addon] /data listing: $(ls -lad /data 2>&1 || echo '<ls failed>')"
-echo "[openems-addon] /data contents: $(ls -la /data 2>&1 || echo '<ls failed>')"
-# Don't exit on mkdir failure — capture the error so we can see it.
-if ! mkdir -p /data/config /data/data /data/bundles 2>&1; then
-    echo "[openems-addon] ERROR: mkdir failed. Trying touch to test write access..."
-    touch /data/.write_test 2>&1 || echo "[openems-addon] touch also failed"
-    echo "[openems-addon] mount info:"
-    mount 2>&1 | grep -E "(/data|overlay)" || echo "  <mount failed>"
-    exit 1
-fi
+mkdir -p /data/config /data/data /data/bundles
 
 # Sync custom Felix bundles from /data/bundles into the runtime bundle
 # directory. Clean the destination of previously-synced custom bundles

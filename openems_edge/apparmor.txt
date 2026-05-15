@@ -27,7 +27,8 @@ profile openems_edge flags=(attach_disconnected,mediate_deleted) {
   /** ix,
 
   # Explicit denies for things nothing in this add-on should touch.
-  deny /etc/shadow* w,
+  # (/etc/shadow is intentionally NOT denied — useradd needs to write
+  # to it on first start when creating the unprivileged openems user.)
   deny /etc/sudoers* w,
   deny /boot/** w,
 }
