@@ -77,23 +77,37 @@ fi
 
 export HOME=/opt/openems
 
+# Felix HTTP port. The add-on exposes 8765 on the host network (avoiding
+# the common 8080 conflict with other HA add-ons). We inject it via
+# JAVA_TOOL_OPTIONS so the JVM picks it up regardless of which upstream
+# launcher script runs.
+HTTP_PORT=8765
+JVM_PROPS="-Dorg.osgi.service.http.port=${HTTP_PORT}"
+
 # Helper: exec a command, dropping privileges if possible.
 # Writes argv to a temp script to preserve argument boundaries
 # instead of flattening through $* in a shell string.
 run_exec() {
     if [ -n "$RUN_USER" ]; then
-        echo "[openems-addon] launching as $RUN_USER: $1"
+        echo "[openems-addon] launching as $RUN_USER: $1 (HTTP port ${HTTP_PORT})"
         LAUNCH_SCRIPT=$(mktemp /tmp/openems-launch.XXXXXX)
-        printf '#!/bin/sh\nexec' > "$LAUNCH_SCRIPT"
-        for arg in "$@"; do
-            printf " '%s'" "$(printf '%s' "$arg" | sed "s/'/'\\\\''/g")" >> "$LAUNCH_SCRIPT"
-        done
-        printf '\n' >> "$LAUNCH_SCRIPT"
+        {
+            printf '#!/bin/sh\n'
+            # env vars don't pass through `su -c`; set them inside the
+            # wrapper so the JVM picks them up after the privilege drop.
+            printf 'export JAVA_TOOL_OPTIONS=%s\n' "'${JVM_PROPS}'"
+            printf 'exec'
+            for arg in "$@"; do
+                printf " '%s'" "$(printf '%s' "$arg" | sed "s/'/'\\\\''/g")"
+            done
+            printf '\n'
+        } > "$LAUNCH_SCRIPT"
         # mktemp creates with mode 0600; widen so RUN_USER can read+exec.
         chmod 755 "$LAUNCH_SCRIPT"
         exec su -s /bin/sh "$RUN_USER" -c "exec $LAUNCH_SCRIPT"
     else
-        echo "[openems-addon] launching as root: $1"
+        echo "[openems-addon] launching as root: $1 (HTTP port ${HTTP_PORT})"
+        export JAVA_TOOL_OPTIONS="${JVM_PROPS}"
         exec "$@"
     fi
 }

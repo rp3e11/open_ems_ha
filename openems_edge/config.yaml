@@ -2,7 +2,7 @@
 # Reference: https://developers.home-assistant.io/docs/add-ons/configuration
 
 name: OpenEMS Edge
-version: "0.1.4"
+version: "0.1.5"
 slug: openems_edge
 description: Run OpenEMS Edge alongside Home Assistant for local energy management
 url: https://openems.github.io/openems.io/
@@ -16,23 +16,23 @@ arch:
 # self-contained Java/OSGi image with its own entrypoint.
 init: false
 
-# Run on the host network so the OpenEMS WebSocket (8085) is reachable on
+# Run on the host network so the OpenEMS WebSocket (8764) is reachable on
 # the HA host's LAN IP and Modbus-TCP/SunSpec devices are discoverable.
 host_network: true
 
-# Port mappings. Port 8080 is also available directly as a fallback
-# since the Felix console doesn't fully support ingress reverse proxying.
+# Port mappings. Defaults moved off 8080/8085 to avoid conflicts with
+# other common HA add-ons (file editor, code-server, etc.).
 ports:
-  8080/tcp: 8080
-  8085/tcp: 8085
+  8765/tcp: 8765
+  8764/tcp: 8764
 ports_description:
-  8080/tcp: Apache Felix Web Console
-  8085/tcp: OpenEMS Edge WebSocket
+  8765/tcp: Apache Felix Web Console (OpenEMS UI)
+  8764/tcp: OpenEMS Edge WebSocket
 
 # Ingress: the Supervisor reverse-proxies the Felix Web Console through
-# HA authentication. No direct exposure of port 8080 needed.
+# HA authentication. No direct exposure of port 8765 needed.
 ingress: true
-ingress_port: 8080
+ingress_port: 8765
 ingress_entry: /system/console
 panel_icon: "mdi:lightning-bolt"
 panel_title: "OpenEMS"
@@ -52,5 +52,7 @@ stage: stable
 startup: services
 boot: auto
 
-# Watchdog: Supervisor will restart the add-on if this health check fails
-watchdog: "tcp://[HOST]:8085"
+# Watchdog: Supervisor will restart the add-on if this health check fails.
+# Use the HTTP port (Felix Jetty), which is always up — the websocket port
+# only opens once the user has configured a Controller.Api.Websocket.
+watchdog: "tcp://[HOST]:8765"

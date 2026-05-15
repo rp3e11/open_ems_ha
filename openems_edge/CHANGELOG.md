@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+- Move default ports off the commonly-contested 8080/8085 onto 8765 (Felix Web Console / OpenEMS UI) and 8764 (OpenEMS WebSocket).
+- Inject `-Dorg.osgi.service.http.port=8765` via `JAVA_TOOL_OPTIONS` in the launch wrapper so Felix Jetty actually binds to the new port after the privilege drop. (The standard OSGi system property is honored by Apache Felix HTTP.)
+- Watchdog now probes the Felix port (8765) rather than the websocket port, since the websocket controller is only created once the user configures one.
+
 ## 0.1.4
 
 - Fix container restart loop after dropping privileges. The launch wrapper script created by `mktemp` was mode `0600`, so the `openems` user couldn't read it after `su`. Now `chmod 755` so the dropped-privilege shell can open and exec it.
