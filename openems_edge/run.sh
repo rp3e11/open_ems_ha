@@ -89,7 +89,8 @@ run_exec() {
             printf " '%s'" "$(printf '%s' "$arg" | sed "s/'/'\\\\''/g")" >> "$LAUNCH_SCRIPT"
         done
         printf '\n' >> "$LAUNCH_SCRIPT"
-        chmod +x "$LAUNCH_SCRIPT"
+        # mktemp creates with mode 0600; widen so RUN_USER can read+exec.
+        chmod 755 "$LAUNCH_SCRIPT"
         exec su -s /bin/sh "$RUN_USER" -c "exec $LAUNCH_SCRIPT"
     else
         echo "[openems-addon] launching as root: $1"

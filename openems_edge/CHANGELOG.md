@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Fix container restart loop after dropping privileges. The launch wrapper script created by `mktemp` was mode `0600`, so the `openems` user couldn't read it after `su`. Now `chmod 755` so the dropped-privilege shell can open and exec it.
+
 ## 0.1.3
 
 - Drop the AppArmor `deny /etc/shadow*` rule. `useradd` writes to `/etc/shadow` when creating the `openems` user on first boot; with the deny rule in place the call failed and the add-on fell back to running as root.
